@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Ensino e IDE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.21.3/min/vs/editor/editor.main.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: space-between;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .section {
+            flex: 1;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #left-section {
+            background-color: #f0f0f0;
+        }
+        #middle-section {
+            background-color: #e0e0e0;
+            border-left: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+        }
+        #right-section {
+            background-color: #f8f8f8;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .file-list {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 10px;
+        }
+        .file-list li {
+            margin-left: 20px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        .file-list li.folder {
+            cursor: pointer;
+        }
+        .file-list li:hover {
+            background-color: #ddd;
+        }
+        .editor-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 40%;
+        }
+        #editor {
+            flex: 1;
+            border: 1px solid #ccc;
+            min-height: 0;
+        }
+        #run-button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="left-section" class="section">
+        <h2>Área de Ensino</h2>
+        <p>Esta seção contém explicações e tutoriais.</p>
+        <p>Exemplo: <code>console.log('Olá, mundo!');</code></p>
+    </div>
+    <div id="middle-section" class="section">
+        <h2>IDE com Pastas e Arquivos</h2>
+        <div id="file-explorer">
+            <h3>Explorador de Arquivos</h3>
+            <ul id="file-list" class="file-list">
+                <li class="folder">/public
+                    
+                </li>
+            </ul>
+        </div>
+        <div class="editor-container">
+            <div id="editor"></div>
+            <button id="run-button" onclick="runCode()">Executar</button>
+        </div>
+    </div>
+    <div id="right-section" class="section">
+        <h2>Área de Resultados</h2>
+        <iframe id="result-frame"></iframe>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.21.3/min/vs/loader.js"></script>
+    <script>
+        var fileSystem = {
+            'index.html': '<!DOCTYPE html><html><head><title>Exemplo</title></head><body><h1>Olá, mundo!</h1></body></html>',
+            'script.js': 'console.log("Script executado!");',
+            'script.py': 'print("Python executado!")',
+            'script.ts': 'console.log("TypeScript executado!");'
+        };
+
+        var editor;
+
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.21.3/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            editor = monaco.editor.create(document.getElementById('editor'), {
+                value: '',
+                language: 'javascript',
+                automaticLayout: true
+            });
+        });
+
+        function loadFile(filename) {
+            var fileContent = fileSystem[filename] || '';
+            editor.setValue(fileContent);
+            var extension = filename.split('.').pop();
+            monaco.editor.setModelLanguage(editor.getModel(), getLanguageForExtension(extension));
+        }
+
+        function runCode() {
+            var code = editor.getValue();
+            var extension = getFileExtension();
+
+            fetch('/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ code: code, extension: extension })
+            })
+            .then(response => response.json())
+            .then(data => {
+                var iframe = document.getElementById('result-frame');
+                if (extension === 'html') {
+                    iframe.srcdoc = data.stdout;
+                } else {
+                    if (data.stdout) {
+                        iframe.contentDocument.body.innerHTML = '<pre>' + data.stdout + '</pre>';
+                    } else if (data.stderr) {
+                        iframe.contentDocument.body.innerHTML = '<pre style="color: red;">' + data.stderr + '</pre>';
+                    }
+                }
+            })
+            .catch(error => console.error('Erro ao executar código:', error));
+        }
+
+        function getFileExtension() {
+            var fileList = document.getElementById('file-list');
+            var selectedFile = fileList.querySelector('.selected');
+            return selectedFile ? selectedFile.textContent.split('.').pop() : 'js';
+        }
+
+        // Inicializa o explorador de arquivos ao carregar a página
+        window.onload = function() {
+            initFileExplorer();
+        };
+
+        function initFileExplorer() {
+    var fileExplorer = document.getElementById('file-explorer');
+    var folders = fileExplorer.getElementsByClassName('folder');
+    var i;
+
+    for (i = 0; i < folders.length; i++) {
+        folders[i].addEventListener('click', function() {
+            this.classList.toggle('active');
+            var nestedList = this.nextElementSibling;
+            if (nestedList.style.display === 'block') {
+                nestedList.style.display = 'none';
+            } else {
+                nestedList.style.display = 'block';
+            }
+        });
+    }
+
+    var fileList = document.getElementById('file-list');
+
+    for (var file in fileSystem) {
+        var listItem = document.createElement('li');
+        var filename = file;
+        if (filename.endsWith('/')) {
+            filename = filename.substring(0, filename.length - 1); // remove trailing slash
+        }
+        var depth = (filename.match(/\//g) || []).length; // count slashes to determine depth
+        if (filename === 'index.html') {
+            listItem.textContent = ' '.repeat(depth * 4) + filename; // keep index.html without replacing '/'
+        } else {
+            listItem.textContent = ' '.repeat(depth * 4) + filename.replace('/', ''); // adjust indentation
+        }
+        listItem.className = 'file';
+        listItem.onclick = function(filename) {
+            return function() {
+                loadFile(filename);
+                document.querySelectorAll('.file-list li').forEach(li => li.classList.remove('selected'));
+                this.classList.add('selected');
+            };
+        }(file);
+        fileList.appendChild(listItem);
+    }
+}
+
+
+        function getLanguageForExtension(extension) {
+            switch (extension) {
+                case 'py':
+                    return 'python';
+                case 'ts':
+                    return 'typescript';
+                case 'html':
+                    return 'html';
+                default:
+                    return 'javascript';
+            }
+        }
+    </script>
+    
+</body>
+</html>
