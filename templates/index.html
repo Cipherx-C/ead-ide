@@ -68,6 +68,50 @@
         #run-button {
             margin-top: 10px;
         }
+        .tab {
+            cursor: pointer;
+            padding: 10px;
+            background-color: #ddd;
+            border: 1px solid #ccc;
+            border-bottom: none;
+        }
+        .tab.active {
+            background-color: #f0f0f0;
+        }
+        .tabs {
+            display: flex;
+        }
+        .congrats-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    text-align: center;
+    z-index: 9999;
+}
+
+.congrats-message h2 {
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.congrats-message button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.congrats-message button:hover {
+    background-color: #45a049;
+}
+
     </style>
 </head>
 <body>
@@ -82,11 +126,20 @@
             <h3>Explorador de Arquivos</h3>
             <ul id="file-list" class="file-list">
                 <li class="folder">/public
-                    
+                    <ul>
+                        <li class="file" onclick="loadFile('index.html')">index.html</li>
+                        <li class="file" onclick="loadFile('style.css')">style.css</li>
+                        <li class="file" onclick="loadFile('script.js')">script.js</li>
+                    </ul>
                 </li>
             </ul>
         </div>
         <div class="editor-container">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('html')">HTML</div>
+                <div class="tab" onclick="switchTab('css')">CSS</div>
+                <div class="tab" onclick="switchTab('js')">JavaScript</div>
+            </div>
             <div id="editor"></div>
             <button id="run-button" onclick="runCode()">Executar</button>
         </div>
@@ -97,126 +150,152 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.21.3/min/vs/loader.js"></script>
     <script>
-        var fileSystem = {
-            'index.html': '<!DOCTYPE html><html><head><title>Exemplo</title></head><body><h1>Olá, mundo!</h1></body></html>',
-            'script.js': 'console.log("Script executado!");',
-            'script.py': 'print("Python executado!")',
-            'script.ts': 'console.log("TypeScript executado!");'
+        var editors = {
+            html: null,
+            css: null,
+            js: null
         };
 
-        var editor;
+        var currentTab = 'html';
 
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.21.3/min/vs' }});
         require(['vs/editor/editor.main'], function() {
-            editor = monaco.editor.create(document.getElementById('editor'), {
+            editors.html = monaco.editor.create(document.getElementById('editor'), {
+                value: '',
+                language: 'html',
+                automaticLayout: true
+            });
+
+            editors.css = monaco.editor.create(document.getElementById('editor'), {
+                value: '',
+                language: 'css',
+                automaticLayout: true
+            });
+
+            editors.js = monaco.editor.create(document.getElementById('editor'), {
                 value: '',
                 language: 'javascript',
                 automaticLayout: true
             });
+
+            switchTab('html');
         });
 
         function loadFile(filename) {
             var fileContent = fileSystem[filename] || '';
-            editor.setValue(fileContent);
             var extension = filename.split('.').pop();
-            monaco.editor.setModelLanguage(editor.getModel(), getLanguageForExtension(extension));
+            var editor = editors[extension];
+            editor.setValue(fileContent);
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            for (var key in editors) {
+                editors[key].getDomNode().style.display = key === tab ? 'block' : 'none';
+            }
+
+            document.querySelectorAll('.tab').forEach(function(el) {
+                el.classList.remove('active');
+            });
+            document.querySelector('.tab[onclick="switchTab(\'' + tab + '\')"]').classList.add('active');
         }
 
         function runCode() {
-            var code = editor.getValue();
-            var extension = getFileExtension();
+    var htmlCode = editors.html.getValue();
+    var cssCode = editors.css.getValue();
+    var jsCode = editors.js.getValue();
 
-            fetch('/execute', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ code: code, extension: extension })
-            })
-            .then(response => response.json())
-            .then(data => {
-                var iframe = document.getElementById('result-frame');
-                if (extension === 'html') {
-                    iframe.srcdoc = data.stdout;
-                } else {
-                    if (data.stdout) {
-                        iframe.contentDocument.body.innerHTML = '<pre>' + data.stdout + '</pre>';
-                    } else if (data.stderr) {
-                        iframe.contentDocument.body.innerHTML = '<pre style="color: red;">' + data.stderr + '</pre>';
-                    }
-                }
-            })
-            .catch(error => console.error('Erro ao executar código:', error));
-        }
+    fetch('/execute', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            html: htmlCode,
+            css: cssCode,
+            js: jsCode
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        var iframe = document.getElementById('result-frame');
+        iframe.srcdoc = data.stdout;
 
-        function getFileExtension() {
-            var fileList = document.getElementById('file-list');
-            var selectedFile = fileList.querySelector('.selected');
-            return selectedFile ? selectedFile.textContent.split('.').pop() : 'js';
-        }
+        // Validar código
+        var htmlContains = htmlCode.includes('<div class="container">');
+        var cssContains = cssCode.includes('body { background-color: lightblue; }');
+        var jsContains = jsCode.includes('addEventListener("click", function() { alert("Botão clicado!"); })');
 
-        // Inicializa o explorador de arquivos ao carregar a página
-        window.onload = function() {
-            initFileExplorer();
-        };
-
-        function initFileExplorer() {
-    var fileExplorer = document.getElementById('file-explorer');
-    var folders = fileExplorer.getElementsByClassName('folder');
-    var i;
-
-    for (i = 0; i < folders.length; i++) {
-        folders[i].addEventListener('click', function() {
-            this.classList.toggle('active');
-            var nestedList = this.nextElementSibling;
-            if (nestedList.style.display === 'block') {
-                nestedList.style.display = 'none';
-            } else {
-                nestedList.style.display = 'block';
-            }
-        });
-    }
-
-    var fileList = document.getElementById('file-list');
-
-    for (var file in fileSystem) {
-        var listItem = document.createElement('li');
-        var filename = file;
-        if (filename.endsWith('/')) {
-            filename = filename.substring(0, filename.length - 1); // remove trailing slash
-        }
-        var depth = (filename.match(/\//g) || []).length; // count slashes to determine depth
-        if (filename === 'index.html') {
-            listItem.textContent = ' '.repeat(depth * 4) + filename; // keep index.html without replacing '/'
+        if (htmlContains && cssContains && jsContains) {
+            showCongratulations();
         } else {
-            listItem.textContent = ' '.repeat(depth * 4) + filename.replace('/', ''); // adjust indentation
+            alert('Ainda não está completo. Continue trabalhando!');
         }
-        listItem.className = 'file';
-        listItem.onclick = function(filename) {
-            return function() {
-                loadFile(filename);
-                document.querySelectorAll('.file-list li').forEach(li => li.classList.remove('selected'));
-                this.classList.add('selected');
-            };
-        }(file);
-        fileList.appendChild(listItem);
+    })
+    .catch(error => console.error('Erro ao executar código:', error));
+}
+
+function showCongratulations() {
+    var congratsDiv = document.createElement('div');
+    congratsDiv.classList.add('congrats-message');
+    congratsDiv.innerHTML = `
+        <h2>Parabéns! Você completou o desafio!</h2>
+        <button onclick="nextLesson()">Próxima Lição</button>
+        <button onclick="closeCongratulations()">Ficar</button>
+    `;
+    document.body.appendChild(congratsDiv);
+}
+
+function nextLesson() {
+    console.log('Avançar para a próxima lição...');
+    window.location.reload();
+}
+
+function closeCongratulations() {
+    var congratsDiv = document.querySelector('.congrats-message');
+    if (congratsDiv) {
+        congratsDiv.remove();
     }
 }
 
 
-        function getLanguageForExtension(extension) {
-            switch (extension) {
-                case 'py':
-                    return 'python';
-                case 'ts':
-                    return 'typescript';
-                case 'html':
-                    return 'html';
-                default:
-                    return 'javascript';
+
+
+        function initFileExplorer() {
+            var fileExplorer = document.getElementById('file-explorer');
+            var folders = fileExplorer.getElementsByClassName('folder');
+            var i;
+
+            for (i = 0; i < folders.length; i++) {
+                folders[i].addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    var content = this.nextElementSibling;
+                    if (content.style.display === 'block') {
+                        content.style.display = 'none';
+                    } else {
+                        content.style.display = 'block';
+                    }
+                });
+            }
+
+            var files = fileExplorer.getElementsByClassName('file');
+            for (i = 0; i < files.length; i++) {
+                files[i].addEventListener('click', function() {
+                    var selectedFile = fileExplorer.querySelector('.file.selected');
+                    if (selectedFile) {
+                        selectedFile.classList.remove('selected');
+                    }
+                    this.classList.add('selected');
+                    loadFile(this.textContent);
+                });
             }
         }
+
+        var fileSystem = {
+            'index.html': '<!DOCTYPE html><html><head><title>Exemplo</title></head><body><h1>Olá, mundo!</h1><p>Este é um parágrafo de exemplo.</p><button>Botão de Teste</button><div class="container"><p>Dentro de um container estilizado.</p></div></body></html>',
+            'style.css': 'body { background-color: lightblue; } h1 { color: navy; } .container { background-color: white; border: 1px solid black; padding: 10px; }',
+            'script.js': 'document.querySelector("button").addEventListener("click", function() { alert("Botão clicado!"); });'
+        };
     </script>
-    
 </body>
 </html>
