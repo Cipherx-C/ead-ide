@@ -82,43 +82,46 @@
             display: flex;
         }
         .congrats-message {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: #fff;
-    border: 1px solid #ccc;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    padding: 20px;
-    text-align: center;
-    z-index: 9999;
-}
-
-.congrats-message h2 {
-    font-size: 24px;
-    margin-bottom: 15px;
-}
-
-.congrats-message button {
-    padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-.congrats-message button:hover {
-    background-color: #45a049;
-}
-
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            text-align: center;
+            z-index: 9999;
+        }
+        .congrats-message h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .congrats-message button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .congrats-message button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
     <div id="left-section" class="section">
         <h2>Área de Ensino</h2>
         <p>Esta seção contém explicações e tutoriais.</p>
+        <p>Para criar um projeto web simples com HTML, CSS e JavaScript, siga o exemplo abaixo:</p>
         <p>Exemplo: <code>console.log('Olá, mundo!');</code></p>
+        <p>Seu projeto deve conter um arquivo HTML, um arquivo CSS e um arquivo JavaScript que façam o seguinte:</p>
+        <ul>
+            <li>O HTML deve incluir um elemento <code>div</code> com a classe <code>container</code>.</li>
+            <li>O CSS deve definir o fundo do corpo da página como azul claro.</li>
+            <li>O JavaScript deve adicionar um ouvinte de eventos a um botão que exiba um alerta quando clicado.</li>
+        </ul>
     </div>
     <div id="middle-section" class="section">
         <h2>IDE com Pastas e Arquivos</h2>
@@ -201,65 +204,54 @@
         }
 
         function runCode() {
-    var htmlCode = editors.html.getValue();
-    var cssCode = editors.css.getValue();
-    var jsCode = editors.js.getValue();
+            var htmlCode = editors.html.getValue();
+            var cssCode = editors.css.getValue();
+            var jsCode = editors.js.getValue();
 
-    fetch('/execute', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            html: htmlCode,
-            css: cssCode,
-            js: jsCode
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        var iframe = document.getElementById('result-frame');
-        iframe.srcdoc = data.stdout;
+            var resultFrame = document.getElementById('result-frame');
+            var resultDocument = resultFrame.contentDocument || resultFrame.contentWindow.document;
+            resultDocument.open();
+            resultDocument.write(`
+                <style>${cssCode}</style>
+                ${htmlCode}
+                <script>${jsCode}<\/script>
+            `);
+            resultDocument.close();
 
-        // Validar código
-        var htmlContains = htmlCode.includes('<div class="container">');
-        var cssContains = cssCode.includes('body { background-color: lightblue; }');
-        var jsContains = jsCode.includes('addEventListener("click", function() { alert("Botão clicado!"); })');
+            // Validar código
+            var htmlContains = htmlCode.includes('<div class="container">');
+            var cssContains = cssCode.includes('body { background-color: lightblue; }');
+            var jsContains = jsCode.includes('addEventListener("click", function() { alert("Botão clicado!"); })');
 
-        if (htmlContains && cssContains && jsContains) {
-            showCongratulations();
-        } else {
-            alert('Ainda não está completo. Continue trabalhando!');
+            if (htmlContains && cssContains && jsContains) {
+                showCongratulations();
+            } else {
+                alert('Ainda não está completo. Continue trabalhando!');
+            }
         }
-    })
-    .catch(error => console.error('Erro ao executar código:', error));
-}
 
-function showCongratulations() {
-    var congratsDiv = document.createElement('div');
-    congratsDiv.classList.add('congrats-message');
-    congratsDiv.innerHTML = `
-        <h2>Parabéns! Você completou o desafio!</h2>
-        <button onclick="nextLesson()">Próxima Lição</button>
-        <button onclick="closeCongratulations()">Ficar</button>
-    `;
-    document.body.appendChild(congratsDiv);
-}
+        function showCongratulations() {
+            var congratsDiv = document.createElement('div');
+            congratsDiv.classList.add('congrats-message');
+            congratsDiv.innerHTML = `
+                <h2>Parabéns! Você completou o desafio!</h2>
+                <button onclick="nextLesson()">Próxima Lição</button>
+                <button onclick="closeCongratulations()">Ficar</button>
+            `;
+            document.body.appendChild(congratsDiv);
+        }
 
-function nextLesson() {
-    console.log('Avançar para a próxima lição...');
-    window.location.reload();
-}
+        function nextLesson() {
+            console.log('Avançar para a próxima lição...');
+            window.location.reload();
+        }
 
-function closeCongratulations() {
-    var congratsDiv = document.querySelector('.congrats-message');
-    if (congratsDiv) {
-        congratsDiv.remove();
-    }
-}
-
-
-
+        function closeCongratulations() {
+            var congratsDiv = document.querySelector('.congrats-message');
+            if (congratsDiv) {
+                congratsDiv.remove();
+            }
+        }
 
         function initFileExplorer() {
             var fileExplorer = document.getElementById('file-explorer');
@@ -296,6 +288,8 @@ function closeCongratulations() {
             'style.css': 'body { background-color: lightblue; } h1 { color: navy; } .container { background-color: white; border: 1px solid black; padding: 10px; }',
             'script.js': 'document.querySelector("button").addEventListener("click", function() { alert("Botão clicado!"); });'
         };
+
+        initFileExplorer();
     </script>
 </body>
 </html>
