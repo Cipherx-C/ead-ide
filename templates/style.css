@@ -1,44 +1,129 @@
 body {
-    font-family: Arial, sans-serif;
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     height: 100vh;
     margin: 0;
+    font-family: Arial, sans-serif;
 }
-
-header {
-    background-color: #333;
-    color: #fff;
-    padding: 10px;
-    text-align: center;
-}
-
-main {
-    display: flex;
+.section {
+    background-color: #155724;
     flex: 1;
-}
-
-.editor {
-    flex: 1;
-    padding: 10px;
-}
-
-#code-editor {
-    width: 100%;
-    height: 100%;
-    border: 1px solid #ccc;
-    padding: 10px;
+    padding: 20px;
     box-sizing: border-box;
-    font-family: monospace;
+    overflow-y: auto;
 }
-
-.preview {
-    flex: 1;
-    padding: 10px;
+#left-section {
+    background-color: #f0f0f0;
 }
-
-#preview-frame {
+#middle-section {
+    background-color: #e0e0e0;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+}
+#right-section {
+    background-color: #f8f8f8;
+}
+iframe {
     width: 100%;
     height: 100%;
+    border: none;
+}
+.file-list {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 10px;
+}
+.file-list li {
+    margin-left: 20px;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+.file-list li.folder {
+    cursor: pointer;
+}
+.file-list li:hover {
+    background-color: #ddd;
+}
+.editor-container {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 40%;
+}
+#editor {
+    flex: 1;
     border: 1px solid #ccc;
+    min-height: 0;
+}
+#run-button {
+    margin-top: 10px;
+}
+.tab {
+    cursor: pointer;
+    padding: 10px;
+    background-color: #ddd;
+    border: 1px solid #ccc;
+    border-bottom: none;
+}
+.tab.active {
+    background-color: #f0f0f0;
+}
+.tabs {
+    display: flex;
+}
+.congrats-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    text-align: center;
+    z-index: 9999;
+}
+.congrats-message h2 {
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+.congrats-message button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+.congrats-message button:hover {
+    background-color: #45a049;
+}
+
+#test-results {
+    margin-top: 20px;
+}
+
+#test-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#test-list li {
+    padding: 5px;
+    background-color: #f2f2f2;
+    margin-bottom: 5px;
+    border-radius: 4px;
+}
+
+#test-list li.passed {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+#test-list li.failed {
+    background-color: #f8d7da;
+    color: #721c24;
 }
