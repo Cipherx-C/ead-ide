@@ -29,23 +29,51 @@ require(['vs/editor/editor.main'], function() {
     switchTab('html');
 });
 
-function loadFile(filename) {
-    var fileContent = fileSystem[filename] || '';
-    var extension = filename.split('.').pop();
-    var editor = editors[extension];
-    editor.setValue(fileContent);
+function showCongratsMessage() {
+    var messageDiv = document.createElement('div');
+    messageDiv.className = 'congrats-message';
+    messageDiv.innerHTML = `
+        <h2>Parabéns!</h2>
+        <p>Você passou todos os testes!</p>
+        <button onclick="handleContinue()">Próxima Lição</button>
+        <button onclick="handleStay()">Ficar</button>
+    `;
+    document.body.appendChild(messageDiv);
 }
 
-function switchTab(tab) {
-    currentTab = tab;
-    for (var key in editors) {
-        editors[key].getDomNode().style.display = key === tab ? 'block' : 'none';
+function handleContinue() {
+    // Remove a mensagem de congratulação
+    const messageDiv = document.querySelector('.congrats-message');
+    if (messageDiv) {
+        messageDiv.remove();
     }
 
-    document.querySelectorAll('.tab').forEach(function(el) {
-        el.classList.remove('active');
-    });
-    document.querySelector('.tab[onclick="switchTab(\'' + tab + '\')"]').classList.add('active');
+    const resultFrame = document.getElementById('result-frame');
+    const resultDocument = resultFrame.contentDocument || resultFrame.contentWindow.document;
+    resultDocument.open();
+    resultDocument.close();
+    editors.html.setValue('');
+    editors.css.setValue('');
+    editors.js.setValue('');
+
+   
+    const testResults = document.getElementById('test-list');
+    testResults.innerHTML = '';
+
+   
+    const selectedFile = document.querySelector('.file.selected');
+    if (selectedFile) {
+        selectedFile.classList.remove('selected');
+    }
+
+    //window.location.href = 'proxima-licao.html'; 
+}
+
+
+
+function handleStay() {
+    // Lógica para continuar na mesma lição
+    document.querySelector('.congrats-message').remove();
 }
 
 function runCode() {
@@ -86,12 +114,45 @@ function runTests(html, css, js) {
         }
     ];
 
+    var allTestsPassed = true;
+
     tests.forEach(function(test) {
         var li = document.createElement('li');
         li.textContent = test.description + ': ' + (test.passed ? 'Passou' : 'Falhou');
-        li.style.color = test.passed ? 'green' : 'red';
+        li.className = test.passed ? 'passed' : 'failed';
+        if (!test.passed) {
+            allTestsPassed = false;
+        }
         testResults.appendChild(li);
     });
+
+    if (allTestsPassed) {
+        showCongratsMessage();
+    }
+}
+
+function loadFile(filename) {
+    var fileContent = fileSystem[filename] || '';
+    var extension = filename.split('.').pop();
+    var editor = editors[extension];
+    if (editor) {
+        editor.setValue(fileContent);
+    }
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    for (var key in editors) {
+        var editor = editors[key];
+        if (editor) {
+            editor.getDomNode().style.display = key === tab ? 'block' : 'none';
+        }
+    }
+
+    document.querySelectorAll('.tab').forEach(function(el) {
+        el.classList.remove('active');
+    });
+    document.querySelector('.tab[onclick="switchTab(\'' + tab + '\')"]').classList.add('active');
 }
 
 function initFileExplorer() {
